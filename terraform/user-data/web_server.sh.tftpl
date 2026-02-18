@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+APP_DIR="/opt/order-api"
+APP_USER="orderapi"
+APP_GROUP="orderapi"
+
+if ! id -u "$APP_USER" >/dev/null 2>&1; then
+  useradd --system --home "$APP_DIR" --shell /sbin/nologin "$APP_USER"
+fi
+
+dnf -y install python3 python3-pip
+
+mkdir -p "$APP_DIR" /etc/order-api
+
+cat <<'APP_PY' > "$APP_DIR/app.py"
+${app_py}
+APP_PY
+
+cat <<'REQS' > "$APP_DIR/requirements.txt"
+${requirements}
+REQS
+
+cat <<'SERVICE' > /etc/systemd/system/order-api.service
+${service_file}
+SERVICE
+
+cat <<'ENVFILE' > /etc/order-api/env
+DB_HOST=${db_host}
+DB_PORT=${db_port}
+DB_USER=${db_user}
+DB_PASSWORD=${db_password}
+DB_NAME=${db_name}
+ENVFILE
+
+chown -R "$APP_USER:$APP_GROUP" "$APP_DIR"
+
+python3 -m venv "$APP_DIR/venv"
+"$APP_DIR/venv/bin/pip" install --upgrade pip
+"$APP_DIR/venv/bin/pip" install -r "$APP_DIR/requirements.txt"
+
+systemctl daemon-reload
+systemctl enable order-api
+systemctl restart order-api
+
+# Install node_exporter
+NODE_EXPORTER_VERSION="1.8.0"
+cd /tmp
+curl -LO "https://github.com/prometheus/node_exporter/releases/download/v$${NODE_EXPORTER_VERSION}/node_exporter-$${NODE_EXPORTER_VERSION}.linux-amd64.tar.gz"
+tar -xzf "node_exporter-$${NODE_EXPORTER_VERSION}.linux-amd64.tar.gz"
+cp "node_exporter-$${NODE_EXPORTER_VERSION}.linux-amd64/node_exporter" /usr/local/bin/
+chmod +x /usr/local/bin/node_exporter
+
+# Create node_exporter user
+useradd --system --no-create-home --shell /sbin/nologin node_exporter || true
+
+# Create node_exporter systemd service
+cat <<'NODE_SERVICE' > /etc/systemd/system/node_exporter.service
+${node_exporter_service}
+NODE_SERVICE
+
+# Enable and start node_exporter
+systemctl daemon-reload
+systemctl enable node_exporter
+systemctl start node_exporter

@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PROMETHEUS_VERSION="2.51.2"
+
+# Install dependencies
+dnf -y install tar gzip
+
+# Create swap space to prevent OOM during Grafana installation
+dd if=/dev/zero of=/swapfile bs=128M count=16
+chmod 600 /swapfile
+mkswap /swapfile
+swapon /swapfile
+echo '/swapfile swap swap defaults 0 0' >> /etc/fstab
+
+# Create prometheus user and directories
+useradd --system --no-create-home --shell /sbin/nologin prometheus || true
+mkdir -p /etc/prometheus /var/lib/prometheus
+
+# Install Prometheus
+cd /tmp
+curl -LO "https://github.com/prometheus/prometheus/releases/download/v$${PROMETHEUS_VERSION}/prometheus-$${PROMETHEUS_VERSION}.linux-amd64.tar.gz"
+tar -xzf "prometheus-$${PROMETHEUS_VERSION}.linux-amd64.tar.gz"
+cp "prometheus-$${PROMETHEUS_VERSION}.linux-amd64/prometheus" /usr/local/bin/
+cp "prometheus-$${PROMETHEUS_VERSION}.linux-amd64/promtool" /usr/local/bin/
+chmod +x /usr/local/bin/prometheus /usr/local/bin/promtool
+
+cat <<'PROM_CONFIG' > /etc/prometheus/prometheus.yml
+${prometheus_config}
+PROM_CONFIG
+
+cat <<'PROM_SERVICE' > /etc/systemd/system/prometheus.service
+${prometheus_service}
+PROM_SERVICE
+
+chown -R prometheus:prometheus /etc/prometheus /var/lib/prometheus
+
+systemctl daemon-reload
+systemctl enable prometheus
+systemctl start prometheus
+
+# Install Grafana
+cat <<'GRAFANA_REPO' > /etc/yum.repos.d/grafana.repo
+[grafana]
+name=Grafana OSS
+baseurl=https://packages.grafana.com/oss/rpm
+repo_gpgcheck=1
+enabled=1
+gpgcheck=1
+gpgkey=https://packages.grafana.com/gpg.key
+sslverify=1
+sslcacert=/etc/pki/tls/certs/ca-bundle.crt
+GRAFANA_REPO
+
+dnf -y install grafana
+
+mkdir -p /etc/grafana/provisioning/datasources
+mkdir -p /etc/grafana/provisioning/dashboards
+
+cat <<'GRAFANA_DS' > /etc/grafana/provisioning/datasources/prometheus.yaml
+${grafana_datasource}
+GRAFANA_DS
+
+# Provision dashboards
+cat <<'DASHBOARD_PROVIDER' > /etc/grafana/provisioning/dashboards/prometheus-demo.yaml
+apiVersion: 1
+
+providers:
+  - name: 'Prometheus Demo'
+    orgId: 1
+    folder: ''
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /etc/grafana/dashboards
+DASHBOARD_PROVIDER
+
+mkdir -p /etc/grafana/dashboards
+cat <<'DASHBOARD_JSON' > /etc/grafana/dashboards/prometheus-demo-dashboard.json
+${dashboard_json}
+DASHBOARD_JSON
+
+systemctl daemon-reload
+systemctl enable grafana-server
+systemctl start grafana-server

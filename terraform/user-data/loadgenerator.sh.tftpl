@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+LOCUST_DIR="/opt/locust"
+LOCUST_USER="locust"
+LOCUST_GROUP="locust"
+
+# Create locust user
+if ! id -u "$LOCUST_USER" >/dev/null 2>&1; then
+  useradd --system --home "$LOCUST_DIR" --shell /sbin/nologin "$LOCUST_USER"
+fi
+
+# Install Python and pip
+dnf -y install python3 python3-pip
+
+# Create locust directory
+mkdir -p "$LOCUST_DIR" /etc/locust
+
+# Deploy locustfile
+cat <<'LOCUSTFILE' > "$LOCUST_DIR/locustfile.py"
+${locustfile}
+LOCUSTFILE
+
+# Create environment file with target host
+cat <<'ENVFILE' > /etc/locust/env
+TARGET_HOST=http://${target_host}:5000
+ENVFILE
+
+# Set ownership
+chown -R "$LOCUST_USER:$LOCUST_GROUP" "$LOCUST_DIR"
+
+# Create virtual environment and install locust
+python3 -m venv "$LOCUST_DIR/venv"
+"$LOCUST_DIR/venv/bin/pip" install --upgrade pip
+"$LOCUST_DIR/venv/bin/pip" install locust
+
+# Deploy systemd service
+cat <<'SERVICE' > /etc/systemd/system/locust.service
+${locust_service}
+SERVICE
+
+# Start locust service
+systemctl daemon-reload
+systemctl enable locust
+systemctl start locust

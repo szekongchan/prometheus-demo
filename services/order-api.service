@@ -1,0 +1,16 @@
+[Unit]
+Description=Order API Flask App
+After=network.target
+
+[Service]
+Type=simple
+User=orderapi
+Group=orderapi
+WorkingDirectory=/opt/order-api
+EnvironmentFile=/etc/order-api/env
+ExecStart=/opt/order-api/venv/bin/python /opt/order-api/app.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

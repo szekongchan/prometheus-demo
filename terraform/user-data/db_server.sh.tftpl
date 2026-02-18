@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+DB_ROOT_PASSWORD="${db_root_password}"
+DB_APP_USER="${db_user}"
+DB_APP_PASSWORD="${db_password}"
+DB_NAME="${db_name}"
+EXPORTER_USER="exporter"
+EXPORTER_PASSWORD="${exporter_password}"
+
+# Install MariaDB 10.5
+dnf -y install mariadb105-server
+
+systemctl enable mariadb
+systemctl start mariadb
+
+# Secure MySQL installation
+mysql -u root <<MYSQL_SECURE
+ALTER USER 'root'@'localhost' IDENTIFIED BY '$DB_ROOT_PASSWORD';
+DELETE FROM mysql.user WHERE User='';
+DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');
+DROP DATABASE IF EXISTS test;
+DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
+FLUSH PRIVILEGES;
+MYSQL_SECURE
+
+# Create database schema
+mysql -u root -p"$DB_ROOT_PASSWORD" <<'SCHEMA_SQL'
+${schema_sql}
+SCHEMA_SQL
+
+# Load seed data
+mysql -u root -p"$DB_ROOT_PASSWORD" <<'SEED_SQL'
+${seed_sql}
+SEED_SQL
+
+# Create application user
+mysql -u root -p"$DB_ROOT_PASSWORD" <<APP_USER_SQL
+CREATE USER IF NOT EXISTS '$DB_APP_USER'@'%' IDENTIFIED BY '$DB_APP_PASSWORD';
+GRANT SELECT, INSERT, UPDATE, DELETE ON $DB_NAME.* TO '$DB_APP_USER'@'%';
+FLUSH PRIVILEGES;
+APP_USER_SQL
+
+# Create exporter user for metrics
+mysql -u root -p"$DB_ROOT_PASSWORD" <<EXPORTER_USER_SQL
+CREATE USER IF NOT EXISTS '$EXPORTER_USER'@'localhost' IDENTIFIED BY '$EXPORTER_PASSWORD';
+GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO '$EXPORTER_USER'@'localhost';
+FLUSH PRIVILEGES;
+EXPORTER_USER_SQL
+
+# Install mysqld_exporter
+MYSQLD_EXPORTER_VERSION="0.15.1"
+cd /tmp
+curl -LO "https://github.com/prometheus/mysqld_exporter/releases/download/v$${MYSQLD_EXPORTER_VERSION}/mysqld_exporter-$${MYSQLD_EXPORTER_VERSION}.linux-amd64.tar.gz"
+tar -xzf "mysqld_exporter-$${MYSQLD_EXPORTER_VERSION}.linux-amd64.tar.gz"
+cp "mysqld_exporter-$${MYSQLD_EXPORTER_VERSION}.linux-amd64/mysqld_exporter" /usr/local/bin/
+chmod +x /usr/local/bin/mysqld_exporter
+
+# Create mysqld_exporter config
+mkdir -p /etc/mysqld_exporter
+cat <<EXPORTER_CNF > /etc/mysqld_exporter/.my.cnf
+[client]
+user=$EXPORTER_USER
+password=$EXPORTER_PASSWORD
+EXPORTER_CNF
+# Create mysqld_exporter user
+useradd --system --no-create-home --shell /sbin/nologin mysqld_exporter || true
+chmod 600 /etc/mysqld_exporter/.my.cnf
+chown mysqld_exporter:mysqld_exporter /etc/mysqld_exporter/.my.cnf
+
+# Create mysqld_exporter systemd service
+cat <<'MYSQLD_SERVICE' > /etc/systemd/system/mysqld_exporter.service
+${mysqld_exporter_service}
+MYSQLD_SERVICE
+
+# Install node_exporter
+NODE_EXPORTER_VERSION="1.8.0"
+cd /tmp
+curl -LO "https://github.com/prometheus/node_exporter/releases/download/v$${NODE_EXPORTER_VERSION}/node_exporter-$${NODE_EXPORTER_VERSION}.linux-amd64.tar.gz"
+tar -xzf "node_exporter-$${NODE_EXPORTER_VERSION}.linux-amd64.tar.gz"
+cp "node_exporter-$${NODE_EXPORTER_VERSION}.linux-amd64/node_exporter" /usr/local/bin/
+chmod +x /usr/local/bin/node_exporter
+
+# Create node_exporter user
+useradd --system --no-create-home --shell /sbin/nologin node_exporter || true
+
+# Create node_exporter systemd service
+cat <<'NODE_SERVICE' > /etc/systemd/system/node_exporter.service
+${node_exporter_service}
+NODE_SERVICE
+
+# Enable and start exporters
+systemctl daemon-reload
+systemctl enable mysqld_exporter node_exporter
+systemctl start mysqld_exporter node_exporter

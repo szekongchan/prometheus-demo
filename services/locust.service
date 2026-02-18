@@ -1,0 +1,16 @@
+[Unit]
+Description=Locust Load Testing Service
+After=network.target
+
+[Service]
+Type=simple
+User=locust
+Group=locust
+WorkingDirectory=/opt/locust
+EnvironmentFile=/etc/locust/env
+ExecStart=/opt/locust/venv/bin/locust --web-host=0.0.0.0 --web-port=8089
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
