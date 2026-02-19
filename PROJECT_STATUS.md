@@ -1,6 +1,6 @@
 # Prometheus Demo - Project Status
 
-**Last Updated**: February 18, 2026 - End of Day
+**Last Updated**: February 19, 2026
 
 ## ✅ Completed
 
@@ -16,21 +16,20 @@
 
 - **Action**: Go to Prometheus `http://<monitor_ip>:9090` → Graph tab
 - **Query**: `http_request_duration_seconds_bucket`
-- **Find**: What are the actual `endpoint` label values?
-- **Expected**: Might be `/api/order/<int:order_id>` instead of `/api/order/[id]`
-- **Status**: Not started
+- **Find**: Confirmed endpoint label normalization is `/api/order/:id`
+- **Status**: Completed
 
 ### Task 2: Update dashboard queries
 
 - **Location**: `monitoring/dashboards/prometheus-demo-dashboard.json`
-- **Current Issue**: GET /order and POST /order queries have no data
-- **Action**: Update endpoint filters to match actual labels from Prometheus
+- **Current Issue**: GET /order and POST /order queries had no data due to label mismatch
+- **Action**: Updated endpoint filters to match app labels (`/api/order/:id`, `/api/order`)
 - **Panels to fix**:
   - Panel ID 4: GET /order - 95th Percentile Response Time
   - Panel ID 5: POST /order - 95th Percentile Response Time
   - Panel ID 6: GET /order - Response Time Heatmap
   - Panel ID 7: POST /order - Response Time Heatmap
-- **Status**: Blocked on Task 1
+- **Status**: Completed
 
 ### Task 3: Start Locust load test
 
@@ -38,7 +37,9 @@
 - **Settings**: 10 users, 1-2 spawn rate
 - **Duration**: Run for 2-3 minutes to generate data
 - **Purpose**: Generate traffic to populate dashboard metrics
-- **Status**: Not started
+- **Run executed**: 2 minutes headless (`-u 10 -r 2 -t 2m`) from load-generator
+- **Result**: 590 requests, 0 failures
+- **Status**: Completed
 
 ### Task 4: Verify dashboard displays metrics
 
@@ -47,7 +48,8 @@
   - Network IO (RX/TX for all servers)
   - 95th percentile response times (GET and POST)
   - Heatmaps (response time distribution overtime)
-- **Status**: Blocked on Tasks 1-3
+- **Validation done**: Prometheus queries used by panels return non-empty series; Grafana visual check completed (GET p95 ~9.44ms, POST p95 ~13ms, other panels rendering)
+- **Status**: Completed
 
 ### Task 5: Discuss improvements
 
@@ -57,11 +59,29 @@
   - Error rate tracking
   - Database query metrics
   - Any user preferences
-- **Status**: After Tasks 1-4 complete
+- **Status**: Next
+
+### Task 6: Run API + metrics smoke test
+
+- **When**: After services are up again (AWS or local)
+- **Scope**:
+  - `GET /health`
+  - `POST /api/order` (verify create path)
+  - `GET /api/order/<id>` (verify customer details in response)
+  - Check `/metrics` for `http_requests_total` and `http_request_duration_seconds`
+- **Purpose**: Confirm end-to-end behavior after latest code/dashboard updates
+- **Result**:
+  - `GET /health` = 200
+  - `POST /api/order` = 201 (created order_id 163)
+  - `GET /api/order/163` = 200 (includes customer details)
+  - `/metrics` contains `http_requests_total` and `http_request_duration_seconds`
+- **Status**: Completed
 
 ## 📊 Current Infrastructure Status
 
-**All Services Running:**
+**Current state:** Services are running on AWS.
+
+**When running, services expected:**
 
 - Web Server: Flask app + node_exporter + order-api systemd service
 - DB Server: MariaDB + mysqld_exporter + node_exporter
@@ -76,10 +96,10 @@
 
 ## 🔍 Known Issues
 
-1. **Dashboard metrics not showing**
-   - Cause: Endpoint label mismatch in queries
-   - Impact: GET/POST response time panels blank
-   - Severity: High - blocks dashboard verification
+1. **No active blocking issues**
+
+- Dashboard endpoint label mismatch is fixed.
+- Load generation, dashboard verification, and smoke test all passed.
 
 ## 📁 File Structure
 
@@ -118,11 +138,8 @@ prometheus-demo/
 
 ## 🚀 Next Session Workflow
 
-1. Mark Task 1 as in-progress
-2. Check Prometheus endpoint labels
-3. Report findings
-4. I'll update dashboard queries
-5. Run Tasks 3-5 in sequence
+1. Proceed to Task 5 improvements discussion
+2. Optional: run longer/stress scenarios and set alert thresholds
 
 ---
 

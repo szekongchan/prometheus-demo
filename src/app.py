@@ -15,6 +15,7 @@ DB_PORT = int(os.getenv("DB_PORT", "3306"))
 DB_USER = os.getenv("DB_USER", "app_user")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "")
 DB_NAME = os.getenv("DB_NAME", "orders_db")
+DEMO_DELAY_MS = int(os.getenv("DEMO_DELAY_MS", "0"))
 
 app = Flask(__name__)
 
@@ -23,20 +24,12 @@ REQUEST_COUNT = Counter(
     "Total HTTP requests",
     ["method", "endpoint", "http_status"],
 )
+
 REQUEST_LATENCY = Histogram(
     "http_request_duration_seconds",
     "HTTP request duration in seconds",
     ["method", "endpoint"],
 )
-ORDERS_CREATED = Counter(
-    "orders_created_total",
-    "Total orders created",
-)
-ORDER_ITEMS_CREATED = Counter(
-    "order_items_created_total",
-    "Total order items created",
-)
-
 
 def _db_connection():
     return pymysql.connect(
@@ -49,17 +42,17 @@ def _db_connection():
         autocommit=False,
     )
 
-
 def _endpoint_label():
     path = request.path
     if request.method == "GET" and path.startswith("/api/order/"):
         return "/api/order/:id"
     return path
 
-
 @app.before_request
 def _before_request():
     request._start_time = time.time()
+    if DEMO_DELAY_MS > 0 and request.path.startswith("/api/order"):
+        time.sleep(DEMO_DELAY_MS / 1000)
 
 
 @app.after_request
@@ -82,8 +75,11 @@ def get_order(order_id):
     try:
         with conn.cursor() as cursor:
             cursor.execute(
-                "SELECT order_id, customer_id, total_amount, status, created_at "
-                "FROM orders WHERE order_id = %s",
+                "SELECT o.order_id, o.customer_id, o.total_amount, o.status, o.created_at, "
+                "c.name AS customer_name, c.email AS customer_email "
+                "FROM orders o "
+                "LEFT JOIN customer c ON o.customer_id = c.customer_id "
+                "WHERE o.order_id = %s",
                 (order_id,),
             )
             order = cursor.fetchone()
@@ -97,6 +93,11 @@ def get_order(order_id):
             )
             items = cursor.fetchall()
 
+        order["customer"] = {
+            "customer_id": order["customer_id"],
+            "name": order.pop("customer_name"),
+            "email": order.pop("customer_email"),
+        }
         order["items"] = items
         return jsonify(order), 200
     finally:
@@ -107,6 +108,7 @@ def get_order(order_id):
 def create_order():
     payload = request.get_json(silent=True) or {}
     customer_id = payload.get("customer_id")
+    customer_payload = payload.get("customer") or {}
     items = payload.get("items", [])
 
     if not customer_id or not isinstance(items, list) or not items:
@@ -124,6 +126,19 @@ def create_order():
     conn = _db_connection()
     try:
         with conn.cursor() as cursor:
+            cursor.execute(
+                "SELECT customer_id FROM customer WHERE customer_id = %s",
+                (customer_id,),
+            )
+            customer = cursor.fetchone()
+            if not customer:
+                customer_name = customer_payload.get("name") or f"Customer {customer_id}"
+                customer_email = customer_payload.get("email") or f"customer{customer_id}@example.com"
+                cursor.execute(
+                    "INSERT INTO customer (customer_id, name, email) VALUES (%s, %s, %s)",
+                    (customer_id, customer_name, customer_email),
+                )
+
             cursor.execute(
                 "INSERT INTO orders (customer_id, total_amount, status) "
                 "VALUES (%s, %s, %s)",
@@ -154,9 +169,6 @@ def create_order():
         return jsonify({"error": "database error", "detail": str(exc)}), 500
     finally:
         conn.close()
-
-    ORDERS_CREATED.inc()
-    ORDER_ITEMS_CREATED.inc(len(items))
 
     return jsonify({"order_id": order_id, "total_amount": str(total_amount)}), 201
 

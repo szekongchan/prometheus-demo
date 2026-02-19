@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-# prometheus-demo
-=======
 # Prometheus/Grafana Demo on AWS
 
 A comprehensive demonstration of monitoring and observability using Prometheus and Grafana on AWS infrastructure, showcasing real-world application monitoring with various load scenarios.
@@ -88,11 +85,34 @@ POST /api/order                     - Create new order
 GET  /metrics                       - Prometheus metrics endpoint
 ```
 
+**POST /api/order request body**:
+
+```json
+{
+  "customer_id": 10,
+  "customer": {
+    "name": "Jane Doe",
+    "email": "jane@example.com"
+  },
+  "items": [
+    {
+      "product_id": 101,
+      "quantity": 2,
+      "unit_price": 19.99
+    }
+  ]
+}
+```
+
+- `customer_id` and `items` are required.
+- `customer` is optional.
+- If `customer_id` does not exist in the `customer` table, the API creates a customer row using `customer.name`/`customer.email` when provided, or generated fallback values.
+
 **Metrics Exposed**:
 
 - HTTP request count (by endpoint, method, status)
 - HTTP request duration (histogram)
-- Custom business metrics (orders processed, items written)
+- API health metrics focused on request volume, latency, and status distribution
 
 ### 2. MySQL Database Server
 
@@ -347,7 +367,7 @@ See `terraform/README.md` for detailed instructions, troubleshooting, and advanc
    - GET `/api/order/<order_id>` - Query orders from database
    - POST `/api/order` - Create new orders with items
 5. Exposes Prometheus metrics endpoint at `/metrics`
-6. Implements HTTP request counting, duration histograms, and custom metrics
+6. Implements HTTP request counting and request duration histograms for API health monitoring
 7. Configures systemd service for automatic Flask app startup
 8. Sets environment variables for database connectivity
 
@@ -547,7 +567,13 @@ locust -f locustfile.py -H http://web-server-public-ip:5000 --headless -u 40 -r 
 In separate session on DB server, apply stress:
 
 ```bash
-sudo stress-ng --cpu 2 --cpu-load 0.8 --timeout 10m
+sudo stress-ng --cpu "$(nproc)" --cpu-load 95 --io 4 --vm 2 --vm-bytes 70% --timeout 10m --metrics-brief
+```
+
+Lighter option (safer for controlled demos):
+
+```bash
+sudo stress-ng --cpu 2 --cpu-load 70 --io 1 --vm 1 --vm-bytes 25% --timeout 5m --metrics-brief
 ```
 
 Monitor:
@@ -575,7 +601,7 @@ After each scenario:
 
 ```bash
 # On load gen server
-sudo systemctl stop stress-ng
+sudo pkill -f stress-ng
 pkill -f locust
 ```
 
@@ -676,4 +702,3 @@ MIT License - Feel free to modify and distribute
 ## Support
 
 For issues or questions, please open an issue on this repository.
->>>>>>> baccbd4 (Initial commit)

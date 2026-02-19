@@ -8,9 +8,9 @@ TARGET_HOST = os.getenv("TARGET_HOST", "http://localhost:5000")
 
 class OrderAPIUser(HttpUser):
     host = TARGET_HOST
-    wait_time = between(1, 3)  # Wait 1-3 seconds between requests
+    wait_time = between(0, 0.1)  # Minimal think time for higher pressure
 
-    @task(3)
+    @task(1)
     def get_order(self):
         """Retrieve an existing order (higher frequency)"""
         order_id = random.randint(1, 8)  # We have 8 orders in seed data
@@ -26,22 +26,19 @@ class OrderAPIUser(HttpUser):
             else:
                 response.failure(f"Unexpected status: {response.status_code}")
 
-    @task(1)
+    @task(5)
     def create_order(self):
-        """Create a new order (lower frequency)"""
+        """Create a new order (higher frequency)"""
         customer_id = random.randint(1, 5)  # We have 5 customers in seed data
         
-        # Generate 1-3 random items per order
-        num_items = random.randint(1, 3)
+        # Generate 20-50 random items per order to increase write pressure
+        num_items = random.randint(20, 50)
         items = []
         for _ in range(num_items):
             items.append({
-                "product_name": random.choice([
-                    "Laptop", "Mouse", "Keyboard", "Monitor", "Headphones",
-                    "Webcam", "USB Cable", "Dock Station", "SSD Drive"
-                ]),
+                "product_id": random.randint(101, 108),
                 "quantity": random.randint(1, 5),
-                "price": round(random.uniform(9.99, 999.99), 2)
+                "unit_price": round(random.uniform(9.99, 999.99), 2)
             })
         
         payload = {

@@ -23,43 +23,21 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisLabel": "CPU %",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 10,
-            "gradientMode": "none",
-            "hideFrom": {
-              "tooltip": false,
-              "viz": false,
-              "legend": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": true,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
+            "mode": "thresholds"
           },
           "mappings": [],
+          "max": 100,
+          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
                 "color": "green",
                 "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 70
               },
               {
                 "color": "red",
@@ -73,113 +51,90 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
+        "w": 6,
         "x": 0,
         "y": 0
       },
       "id": 2,
       "options": {
-        "legend": {
-          "calcs": ["mean", "max"],
-          "displayMode": "table",
-          "placement": "right"
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
         },
-        "tooltip": {
-          "mode": "multi"
-        }
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
       },
       "pluginVersion": "8.0.0",
       "targets": [
         {
-          "expr": "(1 - avg(rate(node_cpu_seconds_total{mode=\"idle\",instance=~\".*:9100\"}[1m])) by (instance)) * 100",
-          "legendFormat": "{{instance}}",
+          "expr": "(1 - avg(rate(node_cpu_seconds_total{job=\"web_node\", mode=\"idle\"}[1m])) by (job)) * 100",
+          "legendFormat": "web",
           "refId": "A"
         }
       ],
-      "title": "CPU Utilization (%)",
-      "type": "timeseries"
+      "title": "Web CPU Utilization",
+      "type": "gauge"
     },
     {
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisLabel": "Bytes/sec",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 10,
-            "gradientMode": "none",
-            "hideFrom": {
-              "tooltip": false,
-              "viz": false,
-              "legend": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": true,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
+            "mode": "thresholds"
           },
           "mappings": [],
+          "max": 100,
+          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
                 "color": "green",
                 "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 70
+              },
+              {
+                "color": "red",
+                "value": 80
               }
             ]
           },
-          "unit": "Bps"
+          "unit": "percent"
         },
         "overrides": []
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
-        "x": 12,
+        "w": 6,
+        "x": 6,
         "y": 0
       },
-      "id": 3,
+      "id": 8,
       "options": {
-        "legend": {
-          "calcs": ["mean", "max"],
-          "displayMode": "table",
-          "placement": "right"
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
         },
-        "tooltip": {
-          "mode": "multi"
-        }
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
       },
       "pluginVersion": "8.0.0",
       "targets": [
         {
-          "expr": "rate(node_network_receive_bytes_total{device!=\"lo\",instance=~\".*:9100\"}[1m])",
-          "legendFormat": "RX {{instance}}",
+          "expr": "(1 - avg(rate(node_cpu_seconds_total{job=\"db_node\", mode=\"idle\"}[1m])) by (job)) * 100",
+          "legendFormat": "db",
           "refId": "A"
-        },
-        {
-          "expr": "rate(node_network_transmit_bytes_total{device!=\"lo\",instance=~\".*:9100\"}[1m])",
-          "legendFormat": "TX {{instance}}",
-          "refId": "B"
         }
       ],
-      "title": "Network IO (Bytes/sec)",
-      "type": "timeseries"
+      "title": "DB CPU Utilization",
+      "type": "gauge"
     },
     {
       "datasource": "Prometheus",
@@ -193,52 +148,51 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "blue",
+                "color": "green",
                 "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 200
+              },
+              {
+                "color": "red",
+                "value": 800
               }
             ]
           },
-          "unit": "s"
+          "unit": "short"
         },
         "overrides": []
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 8
+        "w": 6,
+        "x": 12,
+        "y": 0
       },
-      "id": 4,
+      "id": 3,
       "options": {
-        "calculate": true,
-        "calculation": {},
-        "color": {
-          "scheme": "Viridis"
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
         },
-        "exemplars": {
-          "color": "rgba(255,0,255,0.7)"
-        },
-        "filterValues": {
-          "le": 1e-9
-        },
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom"
-        },
-        "tooltip": {
-          "mode": "multi"
-        }
+        "textMode": "auto"
       },
       "pluginVersion": "8.0.0",
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{endpoint=\"/api/order/[id]\"}[5m])) by (le))",
-          "legendFormat": "p95",
+          "expr": "sum(increase(http_requests_total{endpoint=~\"/api/order|/api/order/:id\"}[5m])) or on() vector(0)",
+          "legendFormat": "requests",
           "refId": "A"
         }
       ],
-      "title": "GET /order - 95th Percentile Response Time",
+      "title": "Requests (5m)",
       "type": "stat"
     },
     {
@@ -253,52 +207,169 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "blue",
+                "color": "green",
                 "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 5
+              },
+              {
+                "color": "red",
+                "value": 15
               }
             ]
           },
-          "unit": "s"
+          "unit": "reqps"
         },
         "overrides": []
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 8
+        "w": 6,
+        "x": 18,
+        "y": 0
       },
-      "id": 5,
+      "id": 9,
       "options": {
-        "calculate": true,
-        "calculation": {},
-        "color": {
-          "scheme": "Viridis"
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
         },
-        "exemplars": {
-          "color": "rgba(255,0,255,0.7)"
-        },
-        "filterValues": {
-          "le": 1e-9
-        },
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom"
-        },
-        "tooltip": {
-          "mode": "multi"
-        }
+        "textMode": "auto"
       },
       "pluginVersion": "8.0.0",
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{endpoint=\"/api/order\"}[5m])) by (le))",
+          "expr": "sum(rate(http_requests_total{endpoint=~\"/api/order|/api/order/:id\"}[1m])) or on() vector(0)",
+          "legendFormat": "req/s",
+          "refId": "A"
+        }
+      ],
+      "title": "Request Rate (req/s)",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 20
+              },
+              {
+                "color": "red",
+                "value": 50
+              }
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 0,
+        "y": 8
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "8.0.0",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{endpoint=\"/api/order/:id\"}[5m])) by (le)) * 1000",
           "legendFormat": "p95",
           "refId": "A"
         }
       ],
-      "title": "POST /order - 95th Percentile Response Time",
+      "title": "GET p95 Latency",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 20
+              },
+              {
+                "color": "red",
+                "value": 50
+              }
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 6,
+        "y": 8
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "8.0.0",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{endpoint=\"/api/order\"}[5m])) by (le)) * 1000",
+          "legendFormat": "p95",
+          "refId": "A"
+        }
+      ],
+      "title": "POST p95 Latency",
       "type": "stat"
     },
     {
@@ -314,6 +385,10 @@
               "tooltip": false,
               "viz": false,
               "legend": false
+            },
+            "scaleDistribution": {
+              "type": "log",
+              "log": 10
             }
           },
           "mappings": [],
@@ -331,9 +406,9 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 16
+        "w": 6,
+        "x": 12,
+        "y": 8
       },
       "id": 6,
       "options": {
@@ -361,13 +436,13 @@
       "pluginVersion": "8.0.0",
       "targets": [
         {
-          "expr": "sum(rate(http_request_duration_seconds_bucket{endpoint=\"/api/order/[id]\"}[1m])) by (le)",
+          "expr": "sum(rate(http_request_duration_seconds_bucket{endpoint=\"/api/order/:id\",le=~\"0.005|0.01|0.025|0.05\"}[1m])) by (le)",
           "format": "heatmap",
           "legendFormat": "{{le}}",
           "refId": "A"
         }
       ],
-      "title": "GET /order - Response Time Heatmap (Overtime)",
+      "title": "GET /api/order/:id - Response Time Heatmap (Overtime)",
       "type": "heatmap"
     },
     {
@@ -383,6 +458,10 @@
               "tooltip": false,
               "viz": false,
               "legend": false
+            },
+            "scaleDistribution": {
+              "type": "log",
+              "log": 10
             }
           },
           "mappings": [],
@@ -400,9 +479,9 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 16
+        "w": 6,
+        "x": 18,
+        "y": 8
       },
       "id": 7,
       "options": {
@@ -430,13 +509,13 @@
       "pluginVersion": "8.0.0",
       "targets": [
         {
-          "expr": "sum(rate(http_request_duration_seconds_bucket{endpoint=\"/api/order\"}[1m])) by (le)",
+          "expr": "sum(rate(http_request_duration_seconds_bucket{endpoint=\"/api/order\",le=~\"0.005|0.01|0.025|0.05\"}[1m])) by (le)",
           "format": "heatmap",
           "legendFormat": "{{le}}",
           "refId": "A"
         }
       ],
-      "title": "POST /order - Response Time Heatmap (Overtime)",
+      "title": "POST /api/order - Response Time Heatmap (Overtime)",
       "type": "heatmap"
     }
   ],
