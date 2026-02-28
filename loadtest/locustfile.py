@@ -26,7 +26,7 @@ class OrderAPIUser(HttpUser):
             else:
                 response.failure(f"Unexpected status: {response.status_code}")
 
-    @task(5)
+    @task(1)
     def create_order(self):
         """Create a new order (higher frequency)"""
         customer_id = random.randint(1, 5)  # We have 5 customers in seed data

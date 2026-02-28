@@ -57,13 +57,13 @@ locals {
     exporter_password       = var.db_exporter_password
   })
   monitor_user_data = templatefile("${path.module}/user-data/monitor_server.sh.tftpl", {
-    prometheus_config     = templatefile("${path.module}/../monitoring/prometheus.yml", {
+    prometheus_config = templatefile("${path.module}/../monitoring/prometheus.yml", {
       web_private_ip = aws_instance.web_server.private_ip
       db_private_ip  = aws_instance.db_server.private_ip
     })
     prometheus_service  = file("${path.module}/../services/prometheus.service")
     grafana_datasource  = file("${path.module}/../monitoring/grafana-datasource.yaml")
-    dashboard_json      = file("${path.module}/../monitoring/dashboards/prometheus-demo-dashboard.json")
+    demo_dashboard_json = file("${path.module}/../monitoring/dashboards/prometheus-demo-dashboard.json")
   })
   loadgenerator_user_data = templatefile("${path.module}/user-data/loadgenerator.sh.tftpl", {
     locustfile     = file("${path.module}/../loadtest/locustfile.py")
@@ -285,7 +285,7 @@ resource "aws_instance" "monitor_server" {
   associate_public_ip_address = true
   key_name                    = aws_key_pair.ssh.key_name
   iam_instance_profile        = aws_iam_instance_profile.ec2_amp_profile.name
-  user_data                   = local.monitor_user_data
+  user_data_base64            = base64gzip(local.monitor_user_data)
   user_data_replace_on_change = true
 
   tags = {

@@ -26,15 +26,15 @@ output "ssh_commands" {
 output "access_urls" {
   description = "Web access URLs"
   value = {
-    grafana              = "http://${aws_instance.monitor_server.public_ip}:3000 (Default: admin/admin)"
-    prometheus           = "http://${aws_instance.monitor_server.public_ip}:9090"
-    prometheus_targets   = "http://${aws_instance.monitor_server.public_ip}:9090/targets"
-    flask_health         = "http://${aws_instance.web_server.public_ip}:5000/health"
-    flask_order_get      = "http://${aws_instance.web_server.public_ip}:5000/api/order/1"
-    flask_metrics        = "http://${aws_instance.web_server.public_ip}:8000/metrics"
-    flask_node_exporter  = "http://${aws_instance.web_server.public_ip}:9100/metrics"
-    db_mysql_exporter    = "http://${aws_instance.db_server.public_ip}:9104/metrics"
-    db_node_exporter     = "http://${aws_instance.db_server.public_ip}:9100/metrics"
-    locust               = "http://${aws_instance.loadgenerator.public_ip}:8089"
+    grafana             = "http://${aws_instance.monitor_server.public_ip}:3000 (Default: admin/admin)"
+    prometheus          = "http://${aws_instance.monitor_server.public_ip}:9090"
+    prometheus_targets  = "http://${aws_instance.monitor_server.public_ip}:9090/targets"
+    flask_health        = "http://${aws_instance.web_server.public_ip}:5000/health"
+    flask_order_get     = "http://${aws_instance.web_server.public_ip}:5000/api/order/1"
+    flask_metrics       = "http://${aws_instance.web_server.public_ip}:8000/metrics"
+    flask_node_exporter = "http://${aws_instance.web_server.public_ip}:9100/metrics"
+    db_mysql_exporter   = "http://${aws_instance.db_server.public_ip}:9104/metrics"
+    db_node_exporter    = "http://${aws_instance.db_server.public_ip}:9100/metrics"
+    locust              = "http://${aws_instance.loadgenerator.public_ip}:8089"
   }
 }

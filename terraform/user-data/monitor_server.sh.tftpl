@@ -77,9 +77,17 @@ providers:
 DASHBOARD_PROVIDER
 
 mkdir -p /etc/grafana/dashboards
-cat <<'DASHBOARD_JSON' > /etc/grafana/dashboards/prometheus-demo-dashboard.json
-${dashboard_json}
-DASHBOARD_JSON
+cat <<'DEMO_DASHBOARD_JSON' > /etc/grafana/dashboards/prometheus-demo-dashboard.json
+${demo_dashboard_json}
+DEMO_DASHBOARD_JSON
+
+# Download Node Exporter Full dashboard (Grafana dashboard ID 1860, revision 42)
+curl -fsSL "https://grafana.com/api/dashboards/1860/revisions/42/download" \
+  -o /etc/grafana/dashboards/node-exporter-dashboard.json
+
+# Download mysqld_exporter dashboard (Grafana dashboard ID 14057)
+curl -fsSL "https://grafana.com/api/dashboards/14057/revisions/latest/download" \
+  -o /etc/grafana/dashboards/mysqld-exporter-dashboard.json
 
 systemctl daemon-reload
 systemctl enable grafana-server

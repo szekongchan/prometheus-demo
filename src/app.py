@@ -51,6 +51,7 @@ def _endpoint_label():
 @app.before_request
 def _before_request():
     request._start_time = time.time()
+    endpoint = _endpoint_label()
     if DEMO_DELAY_MS > 0 and request.path.startswith("/api/order"):
         time.sleep(DEMO_DELAY_MS / 1000)
 

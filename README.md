@@ -1,6 +1,6 @@
 # Prometheus/Grafana Demo on AWS
 
-A comprehensive demonstration of monitoring and observability using Prometheus and Grafana on AWS infrastructure, showcasing real-world application monitoring with various load scenarios.
+A demonstration of monitoring and observability using Prometheus and Grafana on AWS infrastructure, showcasing the use of Histogram metrics to present the 95 precentil response time and the heat map of the API latency.
 
 ## Table of Contents
 
